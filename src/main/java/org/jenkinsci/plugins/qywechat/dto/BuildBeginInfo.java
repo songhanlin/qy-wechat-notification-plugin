@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.qywechat.dto;
 
+import hudson.EnvVars;
 import org.jenkinsci.plugins.qywechat.NotificationUtil;
 import org.jenkinsci.plugins.qywechat.model.NotificationConfig;
 import hudson.model.AbstractBuild;
@@ -11,6 +12,7 @@ import org.apache.commons.lang.StringUtils;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * 开始构建的通知信息
@@ -39,6 +41,11 @@ public class BuildBeginInfo {
     private String projectName;
 
     /**
+     * 环境变量
+     */
+    private EnvVars envVars;
+
+    /**
      * 环境名称
      */
     private String topicName = "";
@@ -48,7 +55,7 @@ public class BuildBeginInfo {
      */
     private String moreInfo = "";
 
-    public BuildBeginInfo(String projectName, AbstractBuild<?, ?> build, NotificationConfig config){
+    public BuildBeginInfo(String projectName, AbstractBuild<?, ?> build, NotificationConfig config, EnvVars envVars){
         //获取请求参数
         List<ParametersAction> parameterList = build.getActions(ParametersAction.class);
         if(parameterList!=null && parameterList.size()>0){
@@ -80,6 +87,8 @@ public class BuildBeginInfo {
         this.consoleUrl = urlBuilder.toString();
         //工程名称
         this.projectName = projectName;
+        // 环境变量
+        this.envVars = envVars;
         //环境名称
         if(config.topicName!=null){
             topicName = config.topicName;
@@ -117,14 +126,17 @@ public class BuildBeginInfo {
             content.append(this.topicName);
         }
         content.append("<font color=\"info\">【" + this.projectName + "】</font>开始构建\n");
+        if(Objects.nonNull(envVars) && StringUtils.isNotEmpty(envVars.get("buildType"))) {
+            content.append(" >构建类型：<font color=\"comment\">" +  envVars.get("buildType") + "</font>\n");
+        }
         content.append(" >构建参数：<font color=\"comment\">" + paramBuffer.toString() + "</font>\n");
         content.append(" >预计用时：<font color=\"comment\">" +  durationTimeStr + "</font>\n");
         if (StringUtils.isNotEmpty(moreInfo)){
             content.append(" >"+moreInfo+"\n");
         }
-        if(StringUtils.isNotEmpty(this.consoleUrl)){
-            content.append(" >[查看控制台](" + this.consoleUrl + ")");
-        }
+//        if(StringUtils.isNotEmpty(this.consoleUrl)){
+//            content.append(" >[查看控制台](" + this.consoleUrl + ")");
+//        }
 
         Map markdown = new HashMap<String, Object>();
         markdown.put("content", content.toString());

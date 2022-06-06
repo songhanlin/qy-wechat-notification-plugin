@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.qywechat.dto;
 
+import hudson.EnvVars;
 import org.jenkinsci.plugins.qywechat.NotificationUtil;
 import org.jenkinsci.plugins.qywechat.model.NotificationConfig;
 import hudson.model.Result;
@@ -9,6 +10,7 @@ import org.apache.commons.lang.StringUtils;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * 结束构建的通知信息
@@ -32,6 +34,11 @@ public class BuildOverInfo {
     private String projectName;
 
     /**
+     * 环境变量
+     */
+    private EnvVars envVars;
+
+    /**
      * 环境名称
      */
     private String topicName = "";
@@ -41,7 +48,7 @@ public class BuildOverInfo {
      */
     private Result result;
 
-    public BuildOverInfo(String projectName, Run<?, ?> run, NotificationConfig config){
+    public BuildOverInfo(String projectName, Run<?, ?> run, NotificationConfig config, EnvVars envVars){
         //使用时间
         this.useTimeString = run.getTimestampString();
         //控制台地址
@@ -62,6 +69,8 @@ public class BuildOverInfo {
         this.consoleUrl = urlBuilder.toString();
         //工程名称
         this.projectName = projectName;
+        // 环境变量
+        this.envVars = envVars;
         //环境名称
         if(config.topicName!=null){
             topicName = config.topicName;
@@ -77,10 +86,13 @@ public class BuildOverInfo {
             content.append(this.topicName);
         }
         content.append("<font color=\"info\">【" + this.projectName + "】</font>构建" + getStatus() + "\n");
-        content.append(" >构建用时：<font color=\"comment\">" +  this.useTimeString + "</font>\n");
-        if(StringUtils.isNotEmpty(this.consoleUrl)) {
-            content.append(" >[查看控制台](" + this.consoleUrl + ")");
+        if(Objects.nonNull(envVars) && StringUtils.isNotEmpty(envVars.get("buildType"))) {
+            content.append(" >构建类型：<font color=\"comment\">" +  envVars.get("buildType") + "</font>\n");
         }
+        content.append(" >构建用时：<font color=\"comment\">" +  this.useTimeString + "</font>\n");
+//        if(StringUtils.isNotEmpty(this.consoleUrl)) {
+//            content.append(" >[查看控制台](" + this.consoleUrl + ")");
+//        }
 
         Map markdown = new HashMap<String, Object>();
         markdown.put("content", content.toString());

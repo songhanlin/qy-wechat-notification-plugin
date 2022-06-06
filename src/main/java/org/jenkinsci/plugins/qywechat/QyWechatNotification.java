@@ -70,7 +70,7 @@ public class QyWechatNotification extends Publisher implements SimpleBuildStep {
             return true;
         }
         this.projectName = build.getProject().getFullDisplayName();
-        BuildBeginInfo buildInfo = new BuildBeginInfo(this.projectName, build, config);
+        BuildBeginInfo buildInfo = new BuildBeginInfo(this.projectName, build, config, envVars);
 
         String req = buildInfo.toJSONString();
         listener.getLogger().println("推送通知" + req);
@@ -91,7 +91,17 @@ public class QyWechatNotification extends Publisher implements SimpleBuildStep {
      */
     @Override
     public void perform(Run<?, ?> run, FilePath workspace, Launcher launcher, TaskListener listener) throws InterruptedException, IOException {
-        NotificationConfig config = getConfig(run.getEnvironment(listener));
+        EnvVars envVars;
+        try {
+            envVars = run.getEnvironment(listener);
+        } catch (Exception e) {
+            listener.getLogger().println("读取环境变量异常" + e.getMessage());
+            envVars = new EnvVars();
+        }
+        envVars.forEach((k,v)->{
+            listener.getLogger().println(k+":"+v);
+        });
+        NotificationConfig config = getConfig(envVars);
         if(StringUtils.isEmpty(config.webhookUrl)){
             return;
         }
@@ -101,7 +111,7 @@ public class QyWechatNotification extends Publisher implements SimpleBuildStep {
         this.projectName = run.getParent().getFullDisplayName();
 
         //构建结束通知
-        BuildOverInfo buildInfo = new BuildOverInfo(this.projectName, run, config);
+        BuildOverInfo buildInfo = new BuildOverInfo(this.projectName, run, config, envVars);
 
         String req = buildInfo.toJSONString();
         listener.getLogger().println("推送通知" + req);
