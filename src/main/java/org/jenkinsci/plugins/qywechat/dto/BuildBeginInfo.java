@@ -2,6 +2,7 @@ package org.jenkinsci.plugins.qywechat.dto;
 
 import hudson.EnvVars;
 import org.jenkinsci.plugins.qywechat.NotificationUtil;
+import org.jenkinsci.plugins.qywechat.dto.wechat.*;
 import org.jenkinsci.plugins.qywechat.model.NotificationConfig;
 import hudson.model.AbstractBuild;
 import hudson.model.ParameterValue;
@@ -9,16 +10,15 @@ import hudson.model.ParametersAction;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * 开始构建的通知信息
  * @author jiaju
  */
 public class BuildBeginInfo {
+
+    private List<String> hiddenParams = Arrays.asList("jobId", "buildType", "projectId", "buildScope");
 
     /**
      * 请求参数
@@ -102,10 +102,12 @@ public class BuildBeginInfo {
         //参数组装
         StringBuffer paramBuffer = new StringBuffer();
         params.forEach((key, val)->{
-            paramBuffer.append(key);
-            paramBuffer.append("=");
-            paramBuffer.append(val);
-            paramBuffer.append(", ");
+            if(!hiddenParams.contains(key)) {
+                paramBuffer.append(key);
+                paramBuffer.append("=");
+                paramBuffer.append(val);
+                paramBuffer.append(", ");
+            }
         });
         if(paramBuffer.length()==0){
             paramBuffer.append("无");
@@ -121,31 +123,49 @@ public class BuildBeginInfo {
         }
 
         //组装内容
-        StringBuilder content = new StringBuilder();
-        if(StringUtils.isNotEmpty(topicName)){
-            content.append(this.topicName);
-        }
-        content.append("<font color=\"info\">【" + this.projectName + "】</font>开始构建\n");
+        MessageInfo messageInfo = new MessageInfo();
+        TemplateCardInfo templateCardInfo = new TemplateCardInfo();
+        // 设置标题
+        SourceInfo sourceInfo = new SourceInfo();
+        sourceInfo.setDesc("开始构建");
+        sourceInfo.setDesc_color("3");
+        templateCardInfo.setSource(sourceInfo);
+        // 设置名称
+        MainTitle mainTitle = new MainTitle();
+        mainTitle.setTitle("【" + this.projectName + "】");
+        templateCardInfo.setMain_title(mainTitle);
+        // 设置二维码
+        CardImage cardImage = new CardImage();
+        cardImage.setUrl("https://appdownload.kstore.shop/" + envVars.get("projectId") + "/qrcode.png");
+        templateCardInfo.setCard_image(cardImage);
+        // 设置点击跳转
+        CardAction cardAction = new CardAction();
+        cardAction.setUrl("http://app.dev.wanmi.com/"+this.projectName+"/"+
+                (envVars.get("buildType").equals("微信小程序")?"1":"0"));
+        templateCardInfo.setCard_action(cardAction);
+
+        // 设置构建明细
+        List<VerticalContentInfo> verticalContentInfos = new ArrayList<>();
         if(Objects.nonNull(envVars) && StringUtils.isNotEmpty(envVars.get("buildType"))) {
-            content.append(" >构建类型：<font color=\"comment\">" +  envVars.get("buildType") + "</font>\n");
+            VerticalContentInfo buildType = new VerticalContentInfo();
+            buildType.setTitle("构建类型");
+            buildType.setDesc(envVars.get("buildType"));
+            verticalContentInfos.add(buildType);
         }
-        content.append(" >构建参数：<font color=\"comment\">" + paramBuffer.toString() + "</font>\n");
-        content.append(" >预计用时：<font color=\"comment\">" +  durationTimeStr + "</font>\n");
-        if (StringUtils.isNotEmpty(moreInfo)){
-            content.append(" >"+moreInfo+"\n");
-        }
-//        if(StringUtils.isNotEmpty(this.consoleUrl)){
-//            content.append(" >[查看控制台](" + this.consoleUrl + ")");
-//        }
+        VerticalContentInfo buildParams = new VerticalContentInfo();
+        buildParams.setTitle("构建参数");
+        buildParams.setDesc(paramBuffer.toString());
+        verticalContentInfos.add(buildParams);
 
-        Map markdown = new HashMap<String, Object>();
-        markdown.put("content", content.toString());
+        VerticalContentInfo buildTime = new VerticalContentInfo();
+        buildTime.setTitle("预计用时");
+        buildTime.setDesc(durationTimeStr);
+        verticalContentInfos.add(buildTime);
 
-        Map data = new HashMap<String, Object>();
-        data.put("msgtype", "markdown");
-        data.put("markdown", markdown);
+        templateCardInfo.setVertical_content_list(verticalContentInfos);
+        messageInfo.setTemplate_card(templateCardInfo);
 
-        String req = JSONObject.fromObject(data).toString();
+        String req = JSONObject.fromObject(messageInfo).toString();
         return req;
     }
 

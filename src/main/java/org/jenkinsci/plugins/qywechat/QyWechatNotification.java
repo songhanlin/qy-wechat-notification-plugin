@@ -125,21 +125,21 @@ public class QyWechatNotification extends Publisher implements SimpleBuildStep {
             return;
         }
 
-        //仅在失败的时候，才进行@
-        if(!result.equals(Result.SUCCESS) || !config.failNotify){
-            //没有填写UserId和手机号码
-            if(StringUtils.isEmpty(config.mentionedId) && StringUtils.isEmpty(config.mentionedMobile)){
-                return;
-            }
-
-            //构建@通知
-            BuildMentionedInfo consoleInfo = new BuildMentionedInfo(run, config);
-
-            req = consoleInfo.toJSONString();
-            listener.getLogger().println("推送通知" + req);
-            //执行推送
-            push(listener.getLogger(), config.webhookUrl, req, config);
-        }
+//        //仅在失败的时候，才进行@
+//        if(!result.equals(Result.SUCCESS) || !config.failNotify){
+//            //没有填写UserId和手机号码
+//            if(StringUtils.isEmpty(config.mentionedId) && StringUtils.isEmpty(config.mentionedMobile)){
+//                return;
+//            }
+//
+//            //构建@通知
+//            BuildMentionedInfo consoleInfo = new BuildMentionedInfo(run, config);
+//
+//            req = consoleInfo.toJSONString();
+//            listener.getLogger().println("推送通知" + req);
+//            //执行推送
+//            push(listener.getLogger(), config.webhookUrl, req, config);
+//        }
     }
 
     /**

@@ -2,15 +2,14 @@ package org.jenkinsci.plugins.qywechat.dto;
 
 import hudson.EnvVars;
 import org.jenkinsci.plugins.qywechat.NotificationUtil;
+import org.jenkinsci.plugins.qywechat.dto.wechat.*;
 import org.jenkinsci.plugins.qywechat.model.NotificationConfig;
 import hudson.model.Result;
 import hudson.model.Run;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * 结束构建的通知信息
@@ -81,43 +80,74 @@ public class BuildOverInfo {
 
     public String toJSONString(){
         //组装内容
-        StringBuilder content = new StringBuilder();
-        if(StringUtils.isNotEmpty(topicName)){
-            content.append(this.topicName);
-        }
-        content.append("<font color=\"info\">【" + this.projectName + "】</font>构建" + getStatus() + "\n");
+        MessageInfo messageInfo = new MessageInfo();
+        TemplateCardInfo templateCardInfo = new TemplateCardInfo();
+
+        // 设置标题
+        SourceInfo sourceInfo = new SourceInfo();
+        sourceInfo.setDesc("构建"+getStatus());
+        sourceInfo.setDesc_color(getStatusColor());
+        templateCardInfo.setSource(sourceInfo);
+        // 设置名称
+        MainTitle mainTitle = new MainTitle();
+        mainTitle.setTitle("【" + this.projectName + "】");
+        templateCardInfo.setMain_title(mainTitle);
+        // 设置二维码
+        CardImage cardImage = new CardImage();
+        cardImage.setUrl("https://appdownload.kstore.shop/" + envVars.get("projectId") + "/qrcode.png");
+        templateCardInfo.setCard_image(cardImage);
+        // 设置点击跳转
+        CardAction cardAction = new CardAction();
+        cardAction.setUrl("http://app.dev.wanmi.com/"+this.projectName+"/"+
+                (envVars.get("buildType").equals("微信小程序")?"1":"0"));
+        templateCardInfo.setCard_action(cardAction);
+
+        // 设置构建明细
+        List<VerticalContentInfo> verticalContentInfos = new ArrayList<>();
         if(Objects.nonNull(envVars) && StringUtils.isNotEmpty(envVars.get("buildType"))) {
-            content.append(" >构建类型：<font color=\"comment\">" +  envVars.get("buildType") + "</font>\n");
+            VerticalContentInfo buildType = new VerticalContentInfo();
+            buildType.setTitle("构建类型");
+            buildType.setDesc(envVars.get("buildType"));
+            verticalContentInfos.add(buildType);
         }
-        content.append(" >构建用时：<font color=\"comment\">" +  this.useTimeString + "</font>\n");
-//        if(StringUtils.isNotEmpty(this.consoleUrl)) {
-//            content.append(" >[查看控制台](" + this.consoleUrl + ")");
-//        }
+        VerticalContentInfo buildTime = new VerticalContentInfo();
+        buildTime.setTitle("构建用时");
+        buildTime.setDesc(useTimeString);
+        verticalContentInfos.add(buildTime);
 
-        Map markdown = new HashMap<String, Object>();
-        markdown.put("content", content.toString());
+        templateCardInfo.setVertical_content_list(verticalContentInfos);
+        messageInfo.setTemplate_card(templateCardInfo);
 
-        Map data = new HashMap<String, Object>();
-        data.put("msgtype", "markdown");
-        data.put("markdown", markdown);
-
-        String req = JSONObject.fromObject(data).toString();
+        String req = JSONObject.fromObject(messageInfo).toString();
         return req;
     }
 
     private String getStatus(){
         if(null != result && result.equals(Result.FAILURE)){
-            return "<font color=\"warning\">失败!!!</font>\uD83D\uDE2D";
+            return "失败!!!\uD83D\uDE2D";
         }else if(null != result && result.equals(Result.ABORTED)){
-            return "<font color=\"warning\">中断!!</font>\uD83D\uDE28";
+            return "中断!!\uD83D\uDE28";
         }else if(null != result && result.equals(Result.UNSTABLE)){
-            return "<font color=\"warning\">异常!!</font>\uD83D\uDE41";
+            return "异常!!\uD83D\uDE41";
         }else if(null != result && result.equals(Result.SUCCESS)){
             int max=successFaces.length-1,min=0;
             int ran = (int) (Math.random()*(max-min)+min);
-            return "<font color=\"info\">成功~</font>" + successFaces[ran];
+            return "成功~" + successFaces[ran];
         }
-        return "<font color=\"warning\">情况未知</font>";
+        return "情况未知";
+    }
+
+    private String getStatusColor(){
+        if(null != result && result.equals(Result.FAILURE)){
+            return "2";
+        }else if(null != result && result.equals(Result.ABORTED)){
+            return "0";
+        }else if(null != result && result.equals(Result.UNSTABLE)){
+            return "2";
+        }else if(null != result && result.equals(Result.SUCCESS)){
+            return "3";
+        }
+        return "1";
     }
 
     String []successFaces = {
