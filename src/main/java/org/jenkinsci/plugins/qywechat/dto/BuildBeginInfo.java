@@ -134,14 +134,17 @@ public class BuildBeginInfo {
         MainTitle mainTitle = new MainTitle();
         mainTitle.setTitle("【" + this.projectName + "】");
         templateCardInfo.setMain_title(mainTitle);
+
+        boolean wechatFlag = envVars.get("buildType").equals("微信小程序");
         // 设置二维码
         CardImage cardImage = new CardImage();
-        cardImage.setUrl("https://appdownload.kstore.shop/" + envVars.get("projectId") + "/qrcode.png");
+        cardImage.setUrl("https://appdownload.kstore.shop/" + envVars.get("projectId") +
+                (wechatFlag?"/wechatCode.png":"/appCode.png"));
         templateCardInfo.setCard_image(cardImage);
         // 设置点击跳转
         CardAction cardAction = new CardAction();
         cardAction.setUrl("http://app.dev.wanmi.com/"+this.projectName+"/"+
-                (envVars.get("buildType").equals("微信小程序")?"1":"0"));
+                (wechatFlag?"1":"0"));
         templateCardInfo.setCard_action(cardAction);
 
         // 设置构建明细
